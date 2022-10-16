@@ -1,9 +1,7 @@
 package db
 
-import "log"
-
 type Connection struct {
-	// omitted fields
+	// simplistic connection for the sake of this exercise
 }
 
 func (*Connection) String() string {
@@ -20,9 +18,4 @@ func Open(addr string, opts ...Option) (*Connection, error) {
 	}
 	var conn Connection
 	return &conn, nil
-}
-
-type config struct {
-	cache  bool
-	logger log.Logger
 }

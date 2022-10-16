@@ -6,6 +6,11 @@ type Option interface {
 	applyTo(*config) error
 }
 
+type config struct {
+	cache  bool
+	logger log.Logger
+}
+
 type cacheOption struct{}
 
 func (c *cacheOption) applyTo(cfg *config) error {
