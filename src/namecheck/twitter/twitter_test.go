@@ -10,7 +10,7 @@ import (
 var _ namecheck.Checker = (*twitter.Twitter)(nil)
 
 func TestUsernameTooLong(t *testing.T) {
-	tw := twitter.Twitter{}
+	var tw twitter.Twitter
 	username := "obviously_longer_than_15_chars"
 	want := false
 	got := tw.IsValid(username)
@@ -25,7 +25,7 @@ func TestUsernameTooLong(t *testing.T) {
 }
 
 func TestUsernameTooShort(t *testing.T) {
-	tw := twitter.Twitter{}
+	var tw twitter.Twitter
 	username := "foo"
 	want := false
 	got := tw.IsValid(username)
@@ -40,7 +40,7 @@ func TestUsernameTooShort(t *testing.T) {
 }
 
 func TestUsernameContainsIllegalPattern(t *testing.T) {
-	tw := twitter.Twitter{}
+	var tw twitter.Twitter
 	username := "FtWittEroo"
 	want := false
 	got := tw.IsValid(username)
@@ -55,7 +55,7 @@ func TestUsernameContainsIllegalPattern(t *testing.T) {
 }
 
 func TestUsernameContainsIllegalChars(t *testing.T) {
-	tw := twitter.Twitter{}
+	var tw twitter.Twitter
 	username := "jub0bs-"
 	want := false
 	got := tw.IsValid(username)
@@ -70,7 +70,7 @@ func TestUsernameContainsIllegalChars(t *testing.T) {
 }
 
 func TestUsernameValid(t *testing.T) {
-	tw := twitter.Twitter{}
+	var tw twitter.Twitter
 	username := "jub0bs"
 	want := true
 	got := tw.IsValid(username)
