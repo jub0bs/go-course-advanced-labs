@@ -6,29 +6,29 @@ type Option interface {
 	applyTo(*config) error
 }
 
+type option func(*config) error
+
+func (f option) applyTo(cfg *config) error {
+	return f(cfg)
+}
+
 type config struct {
 	cache  bool
 	logger log.Logger
 }
 
-type cacheOption struct{}
-
-func (c *cacheOption) applyTo(cfg *config) error {
-	cfg.cache = true
-	return nil
-}
-
 func WithCache() Option {
-	return new(cacheOption)
+	f := func(cfg *config) error {
+		cfg.cache = true
+		return nil
+	}
+	return option(f)
 }
 
-type loggerOption log.Logger
-
-func (l loggerOption) applyTo(cfg *config) error {
-	cfg.logger = log.Logger(l)
-	return nil
-}
-
-func WithLogger(log log.Logger) Option {
-	return loggerOption(log)
+func WithLogger(logger log.Logger) Option {
+	f := func(cfg *config) error {
+		cfg.logger = logger
+		return nil
+	}
+	return option(f)
 }
