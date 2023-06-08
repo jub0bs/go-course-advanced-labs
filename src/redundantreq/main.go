@@ -4,13 +4,11 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
+	"os"
 	"time"
 )
 
-type Result struct {
-	data string
-	err  error
-}
+type Result string
 
 func init() {
 	rand.Seed(time.Now().UnixNano())
@@ -19,23 +17,34 @@ func init() {
 func main() {
 	dc := "Strasbourg"
 	results := make(chan Result)
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 700*time.Millisecond)
 	defer cancel()
-	go fetchFrom(ctx, results, dc)
-	fmt.Println(<-results)
+	go func() {
+		res, err := query(ctx, dc)
+		if err != nil {
+			return
+		}
+		results <- res
+	}()
+	select {
+	case <-ctx.Done():
+		fmt.Fprintln(os.Stderr, ctx.Err())
+		return
+	case res := <-results:
+		fmt.Println(res)
+	}
 }
 
-func fetchFrom(ctx context.Context, results chan<- Result, dc string) {
+func query(ctx context.Context, dc string) (Result, error) {
 	timer := time.NewTimer(time.Duration(rand.Intn(1000)) * time.Millisecond)
-	var res Result
+	defer timer.Stop()
 	select {
 	case <-ctx.Done():
 		fmt.Println("cancelling request to", dc)
-		timer.Stop()
-		res.err = ctx.Err()
+		return "", ctx.Err()
 	case <-timer.C:
-		res.data = fmt.Sprintf("data from %s", dc)
+		break
 	}
-	results <- res
-
+	res := Result(fmt.Sprintf("data from %s", dc))
+	return res, nil
 }
