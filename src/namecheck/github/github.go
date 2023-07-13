@@ -49,7 +49,15 @@ func (gh *GitHub) IsAvailable(username string) (bool, error) {
 		return false, err
 	}
 	defer resp.Body.Close()
-	return resp.StatusCode == http.StatusNotFound, nil
+	switch resp.StatusCode {
+	case http.StatusNotFound:
+		return true, nil
+	case http.StatusOK:
+		return false, nil
+	default:
+		const tmpl = "namecheck/github: unexpected status code %d"
+		return false, fmt.Errorf(tmpl, resp.StatusCode)
+	}
 }
 
 func isLongEnough(username string) bool {
