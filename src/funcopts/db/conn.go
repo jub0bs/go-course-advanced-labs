@@ -11,7 +11,7 @@ func (*Connection) String() string {
 func Open(addr string, opts ...Option) (*Connection, error) {
 	var cfg config
 	for _, o := range opts {
-		err := o.applyTo(&cfg)
+		err := o.apply(&cfg)
 		if err != nil {
 			return nil, err
 		}
