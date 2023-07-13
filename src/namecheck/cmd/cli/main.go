@@ -5,7 +5,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"sync"
 
 	"github.com/jub0bs/namecheck"
 	"github.com/jub0bs/namecheck/github"
@@ -28,16 +27,12 @@ func main() {
 		}
 		checkers = append(checkers, t, g)
 	}
-	var wg sync.WaitGroup
-	wg.Add(len(checkers))
 	for _, checker := range checkers {
-		go check(checker, username, &wg)
+		check(checker, username)
 	}
-	wg.Wait()
 }
 
-func check(checker namecheck.Checker, username string, wg *sync.WaitGroup) {
-	defer wg.Done()
+func check(checker namecheck.Checker, username string) {
 	if !checker.IsValid(username) {
 		fmt.Printf("%q is not valid on %s\n", username, checker.String())
 		return
