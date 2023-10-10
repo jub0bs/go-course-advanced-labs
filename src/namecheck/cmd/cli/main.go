@@ -39,7 +39,7 @@ func check(checker namecheck.Checker, username string) {
 	}
 	avail, err := checker.IsAvailable(username)
 	if err != nil {
-		fmt.Fprint(os.Stderr, err)
+		fmt.Fprintln(os.Stderr, err)
 		return
 	}
 	if !avail {
