@@ -27,8 +27,10 @@ func main() {
 	}()
 	select {
 	case <-ctx.Done():
-		fmt.Fprintln(os.Stderr, ctx.Err())
-		return
+		if ctx.Err() == context.DeadlineExceeded {
+			fmt.Fprintln(os.Stderr, ctx.Err())
+			return
+		}
 	case res := <-results:
 		fmt.Println(res)
 	}
