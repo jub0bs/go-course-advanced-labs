@@ -6,18 +6,16 @@ import (
 	"math/rand"
 	"os"
 	"time"
+
+	"github.com/gonum/stat/distuv"
 )
 
 type Result string
 
-func init() {
-	rand.Seed(time.Now().UnixNano())
-}
-
 func main() {
 	dc := "Strasbourg"
 	results := make(chan Result)
-	ctx, cancel := context.WithTimeout(context.Background(), 700*time.Millisecond)
+	ctx, cancel := context.WithTimeout(context.Background(), 2000*time.Millisecond)
 	defer cancel()
 	go func() {
 		res, err := query(ctx, dc)
@@ -35,8 +33,10 @@ func main() {
 	}
 }
 
+// Do not modify this function (imagine it's third-party).
 func query(ctx context.Context, dc string) (Result, error) {
-	timer := time.NewTimer(time.Duration(rand.Intn(1000)) * time.Millisecond)
+	latencyMs := 1000 * dist.Rand()
+	timer := time.NewTimer(time.Duration(latencyMs) * time.Millisecond)
 	defer timer.Stop()
 	select {
 	case <-ctx.Done():
@@ -47,4 +47,11 @@ func query(ctx context.Context, dc string) (Result, error) {
 	}
 	res := Result(fmt.Sprintf("data from %s", dc))
 	return res, nil
+}
+
+// see https://en.wikipedia.org/wiki/Log-normal_distribution
+var dist = distuv.LogNormal{
+	Mu:     0,
+	Sigma:  0.5,
+	Source: rand.New(rand.NewSource(time.Now().UTC().UnixNano())),
 }
