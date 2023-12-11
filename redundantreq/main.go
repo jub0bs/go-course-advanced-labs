@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/gonum/stat/distuv"
@@ -14,7 +15,7 @@ type Result string
 
 func main() {
 	dc := "Strasbourg"
-	results := make(chan Result)
+	results := make(chan Result, 1)
 	ctx, cancel := context.WithTimeout(context.Background(), 2000*time.Millisecond)
 	defer cancel()
 	go func() {
@@ -33,25 +34,29 @@ func main() {
 	}
 }
 
-// Do not modify this function (imagine it's third-party).
+// Do not modify the file beyond this point.
+
 func query(ctx context.Context, dc string) (Result, error) {
+	mu.Lock()
 	latencyMs := 1000 * dist.Rand()
+	mu.Unlock()
 	timer := time.NewTimer(time.Duration(latencyMs) * time.Millisecond)
 	defer timer.Stop()
 	select {
 	case <-ctx.Done():
-		fmt.Println("cancelling request to", dc)
 		return "", ctx.Err()
 	case <-timer.C:
-		break
+		res := Result(fmt.Sprintf("received response from %s", dc))
+		return res, nil
 	}
-	res := Result(fmt.Sprintf("data from %s", dc))
-	return res, nil
 }
 
-// see https://en.wikipedia.org/wiki/Log-normal_distribution
-var dist = distuv.LogNormal{
-	Mu:     0,
-	Sigma:  0.5,
-	Source: rand.New(rand.NewSource(time.Now().UTC().UnixNano())),
-}
+var (
+	// see https://en.wikipedia.org/wiki/Log-normal_distribution
+	dist = distuv.LogNormal{
+		Mu:     0,
+		Sigma:  0.5,
+		Source: rand.New(rand.NewSource(time.Now().UTC().UnixNano())),
+	}
+	mu sync.Mutex
+)
