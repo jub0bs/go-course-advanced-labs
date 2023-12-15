@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/jub0bs/namecheck"
 	"github.com/jub0bs/namecheck/github"
 	"github.com/jub0bs/namecheck/twitter"
 )
@@ -17,7 +16,7 @@ func main() {
 	}
 	username := os.Args[1]
 
-	var checkers []namecheck.Checker
+	var checkers []Checker
 	for i := 0; i < 3; i++ {
 		t := &twitter.Twitter{
 			Client: http.DefaultClient,
@@ -32,7 +31,7 @@ func main() {
 	}
 }
 
-func check(checker namecheck.Checker, username string) {
+func check(checker Checker, username string) {
 	if !checker.IsValid(username) {
 		fmt.Printf("%q is not valid on %s\n", username, checker.String())
 		return
