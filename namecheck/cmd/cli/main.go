@@ -7,7 +7,6 @@ import (
 	"os"
 
 	"github.com/jub0bs/namecheck/github"
-	"github.com/jub0bs/namecheck/twitter"
 )
 
 func main() {
@@ -17,14 +16,12 @@ func main() {
 	username := os.Args[1]
 
 	var checkers []Checker
-	for i := 0; i < 3; i++ {
-		t := &twitter.Twitter{
-			Client: http.DefaultClient,
-		}
-		g := &github.GitHub{
-			Client: http.DefaultClient,
-		}
-		checkers = append(checkers, t, g)
+	const n = 4
+	g := &github.GitHub{
+		Client: http.DefaultClient,
+	}
+	for range n {
+		checkers = append(checkers, g)
 	}
 	for _, checker := range checkers {
 		check(checker, username)
