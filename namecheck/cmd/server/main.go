@@ -58,18 +58,30 @@ func handleCheck(w http.ResponseWriter, r *http.Request) {
 		checkers = append(checkers, g)
 	}
 	resultCh := make(chan Result)
+	errorCh := make(chan error)
 	var wg sync.WaitGroup
 	for _, checker := range checkers {
 		wg.Add(1)
-		go check(checker, username, &wg, resultCh)
+		go check(checker, username, &wg, resultCh, errorCh)
 	}
 	go func() {
 		wg.Wait()
 		close(resultCh)
 	}()
 	var results []Result
-	for res := range resultCh {
-		results = append(results, res)
+	var finished bool
+	for !finished {
+		select {
+		case <-errorCh:
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		case res, ok := <-resultCh:
+			if !ok {
+				finished = true
+				continue
+			}
+			results = append(results, res)
+		}
 	}
 	data := struct {
 		Username string   `json:"username"`
@@ -90,6 +102,7 @@ func check(
 	username string,
 	wg *sync.WaitGroup,
 	resultCh chan<- Result,
+	errorCh chan<- error,
 ) {
 	defer wg.Done()
 	res := Result{
@@ -100,6 +113,11 @@ func check(
 		resultCh <- res
 		return
 	}
-	res.Available, res.Err = checker.IsAvailable(username)
+	avail, err := checker.IsAvailable(username)
+	if err != nil {
+		errorCh <- err
+		return
+	}
+	res.Available = avail
 	resultCh <- res
 }
