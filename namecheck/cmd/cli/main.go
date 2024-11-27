@@ -52,7 +52,7 @@ func check(
 	checker Checker,
 	username string,
 	wg *sync.WaitGroup,
-	resultCh chan Result,
+	resultCh chan<- Result,
 ) {
 	defer wg.Done()
 	res := Result{
