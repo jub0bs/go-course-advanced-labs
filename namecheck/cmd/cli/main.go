@@ -7,6 +7,7 @@ import (
 	"os"
 	"sync"
 
+	"github.com/jub0bs/namecheck"
 	"github.com/jub0bs/namecheck/github"
 )
 
@@ -23,7 +24,7 @@ func main() {
 	}
 	username := os.Args[1]
 
-	var checkers []Checker
+	var checkers []namecheck.Checker
 	const n = 16
 	g := &github.GitHub{
 		Client: http.DefaultClient,
@@ -49,7 +50,7 @@ func main() {
 }
 
 func check(
-	checker Checker,
+	checker namecheck.Checker,
 	username string,
 	wg *sync.WaitGroup,
 	resultCh chan<- Result,
