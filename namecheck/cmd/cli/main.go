@@ -5,9 +5,17 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"sync"
 
 	"github.com/jub0bs/namecheck/github"
 )
+
+type Result struct {
+	Platform  string
+	Valid     bool
+	Available bool
+	Err       error
+}
 
 func main() {
 	if len(os.Args[1:]) == 0 {
@@ -16,31 +24,45 @@ func main() {
 	username := os.Args[1]
 
 	var checkers []Checker
-	const n = 4
+	const n = 16
 	g := &github.GitHub{
 		Client: http.DefaultClient,
 	}
 	for range n {
 		checkers = append(checkers, g)
 	}
+	resultCh := make(chan Result)
+	var wg sync.WaitGroup
 	for _, checker := range checkers {
-		check(checker, username)
+		wg.Add(1)
+		go check(checker, username, &wg, resultCh)
 	}
+	go func() {
+		wg.Wait()
+		close(resultCh)
+	}()
+	var results []Result
+	for res := range resultCh {
+		results = append(results, res)
+	}
+	fmt.Println(results)
 }
 
-func check(checker Checker, username string) {
-	if !checker.IsValid(username) {
-		fmt.Printf("%q is not valid on %s\n", username, checker.String())
+func check(
+	checker Checker,
+	username string,
+	wg *sync.WaitGroup,
+	resultCh chan Result,
+) {
+	defer wg.Done()
+	res := Result{
+		Platform: checker.String(),
+		Valid:    checker.IsValid(username),
+	}
+	if !res.Valid {
+		resultCh <- res
 		return
 	}
-	avail, err := checker.IsAvailable(username)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return
-	}
-	if !avail {
-		fmt.Printf("%q is valid but unavailable on %s\n", username, checker.String())
-		return
-	}
-	fmt.Printf("%q is valid and available on %s\n", username, checker.String())
+	res.Available, res.Err = checker.IsAvailable(username)
+	resultCh <- res
 }
