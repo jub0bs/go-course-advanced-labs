@@ -1,6 +1,7 @@
 package namecheck
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 )
@@ -14,7 +15,7 @@ type Validator interface {
 }
 
 type Availabler interface {
-	IsAvailable(username string) (bool, error)
+	IsAvailable(ctx context.Context, username string) (bool, error)
 }
 
 type Checker interface {

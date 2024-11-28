@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net/http"
@@ -64,6 +65,6 @@ func check(
 		resultCh <- res
 		return
 	}
-	res.Available, res.Err = checker.IsAvailable(username)
+	res.Available, res.Err = checker.IsAvailable(context.Background(), username)
 	resultCh <- res
 }

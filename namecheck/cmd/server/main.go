@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"maps"
 	"net/http"
@@ -82,7 +83,7 @@ func handleCheck(w http.ResponseWriter, r *http.Request) {
 	}
 	resultCh := make(chan Result)
 	errorCh := make(chan error)
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
 	defer cancel()
 	var wg sync.WaitGroup
 	for _, checker := range checkers {
@@ -102,6 +103,7 @@ func handleCheck(w http.ResponseWriter, r *http.Request) {
 			return
 		case <-errorCh:
 			cancel()
+			fmt.Println(ctx.Err())
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		case res, ok := <-resultCh:
@@ -146,7 +148,7 @@ func check(
 		}
 		return
 	}
-	avail, err := checker.IsAvailable(username)
+	avail, err := checker.IsAvailable(ctx, username)
 	if err != nil {
 		select {
 		case <-ctx.Done():
