@@ -1,10 +1,12 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"log"
 	"net/http"
 	"sync"
+	"time"
 
 	"github.com/jub0bs/cors"
 	"github.com/jub0bs/namecheck"
@@ -59,10 +61,12 @@ func handleCheck(w http.ResponseWriter, r *http.Request) {
 	}
 	resultCh := make(chan Result)
 	errorCh := make(chan error)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 	var wg sync.WaitGroup
 	for _, checker := range checkers {
 		wg.Add(1)
-		go check(checker, username, &wg, resultCh, errorCh)
+		go check(ctx, checker, username, &wg, resultCh, errorCh)
 	}
 	go func() {
 		wg.Wait()
@@ -72,7 +76,11 @@ func handleCheck(w http.ResponseWriter, r *http.Request) {
 	var finished bool
 	for !finished {
 		select {
+		case <-ctx.Done():
+			w.WriteHeader(http.StatusInternalServerError)
+			return
 		case <-errorCh:
+			cancel()
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		case res, ok := <-resultCh:
@@ -98,6 +106,7 @@ func handleCheck(w http.ResponseWriter, r *http.Request) {
 }
 
 func check(
+	ctx context.Context,
 	checker namecheck.Checker,
 	username string,
 	wg *sync.WaitGroup,
@@ -110,14 +119,23 @@ func check(
 		Valid:    checker.IsValid(username),
 	}
 	if !res.Valid {
-		resultCh <- res
+		select {
+		case <-ctx.Done():
+		case resultCh <- res:
+		}
 		return
 	}
 	avail, err := checker.IsAvailable(username)
 	if err != nil {
-		errorCh <- err
+		select {
+		case <-ctx.Done():
+		case errorCh <- err:
+		}
 		return
 	}
 	res.Available = avail
-	resultCh <- res
+	select {
+	case <-ctx.Done():
+	case resultCh <- res:
+	}
 }
