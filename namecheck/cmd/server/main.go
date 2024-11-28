@@ -142,23 +142,23 @@ func check(
 		Valid:    checker.IsValid(username),
 	}
 	if !res.Valid {
-		select {
-		case <-ctx.Done():
-		case resultCh <- res:
-		}
+		send(ctx, resultCh, res)
 		return
 	}
 	avail, err := checker.IsAvailable(ctx, username)
 	if err != nil {
-		select {
-		case <-ctx.Done():
-		case errorCh <- err:
-		}
+		send(ctx, resultCh, res)
 		return
 	}
 	res.Available = avail
+	send(ctx, resultCh, res)
+}
+
+func send[T any](ctx context.Context, ch chan<- T, v T) {
 	select {
 	case <-ctx.Done():
-	case resultCh <- res:
+		return
+	case ch <- v:
+		return
 	}
 }
