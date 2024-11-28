@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"log"
+	"maps"
 	"net/http"
 	"sync"
 	"time"
@@ -20,10 +21,16 @@ type Result struct {
 	Err       error  `json:"error,omitempty"`
 }
 
+var (
+	stats = make(map[string]uint)
+	mu    sync.Mutex
+)
+
 func main() {
 	// create a custom HTTP request multiplexer and register your handler to pattern GET /hello
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /check", handleCheck)
+	mux.HandleFunc("GET /stats", handleStats)
 
 	// instantiate a CORS middleware whose config suits your needs
 	corsMw, err := cors.NewMiddleware(cors.Config{
@@ -45,12 +52,26 @@ func main() {
 	}
 }
 
+func handleStats(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	enc := json.NewEncoder(w)
+	mu.Lock()
+	statsCopy := maps.Clone(stats)
+	mu.Unlock()
+	if err := enc.Encode(statsCopy); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+	}
+}
+
 func handleCheck(w http.ResponseWriter, r *http.Request) {
 	username := r.URL.Query().Get("username")
 	if username == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
+	mu.Lock()
+	stats[username]++
+	mu.Unlock()
 	var checkers []namecheck.Checker
 	const n = 16
 	g := &github.GitHub{

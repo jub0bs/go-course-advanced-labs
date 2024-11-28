@@ -39,7 +39,7 @@ func (*GitHub) IsValid(username string) bool {
 }
 
 func (gh *GitHub) IsAvailable(username string) (bool, error) {
-	endpoint := fmt.Sprintf("https://githsdfgsdfgdsfgub.com/%s", url.PathEscape(username))
+	endpoint := fmt.Sprintf("https://github.com/%s", url.PathEscape(username))
 	req, err := http.NewRequest(http.MethodGet, endpoint, nil)
 	if err != nil {
 		return false, err
