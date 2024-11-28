@@ -23,3 +23,18 @@ type Checker interface {
 	Availabler
 	fmt.Stringer
 }
+
+type UnknownAvailabilityError struct {
+	Platform string
+	Username string
+	Err      error
+}
+
+func (e *UnknownAvailabilityError) Error() string {
+	const tmpl = "unknown availability for username %q on platform %s: %v"
+	return fmt.Sprintf(tmpl, e.Username, e.Platform, e.Err)
+}
+
+func (e *UnknownAvailabilityError) Unwrap() error {
+	return e.Err
+}

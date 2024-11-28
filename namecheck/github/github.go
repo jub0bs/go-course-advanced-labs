@@ -42,14 +42,20 @@ func (*GitHub) IsValid(username string) bool {
 var _ namecheck.Checker = (*GitHub)(nil)
 
 func (gh *GitHub) IsAvailable(ctx context.Context, username string) (bool, error) {
-	endpoint := fmt.Sprintf("https://github.com/%s", url.PathEscape(username))
+	endpoint := fmt.Sprintf("https://gisdflnsdgf,nmthub.com/%s", url.PathEscape(username))
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+	errua := namecheck.UnknownAvailabilityError{
+		Username: username,
+		Platform: gh.String(),
+	}
 	if err != nil {
-		return false, err
+		errua.Err = err
+		return false, &errua
 	}
 	resp, err := gh.Client.Do(req)
 	if err != nil {
-		return false, err
+		errua.Err = err
+		return false, &errua
 	}
 	defer resp.Body.Close()
 	switch resp.StatusCode {
@@ -59,7 +65,8 @@ func (gh *GitHub) IsAvailable(ctx context.Context, username string) (bool, error
 		return false, nil
 	default:
 		const tmpl = "namecheck/github: unexpected status code %d"
-		return false, fmt.Errorf(tmpl, resp.StatusCode)
+		errua.Err = fmt.Errorf(tmpl, resp.StatusCode)
+		return false, &errua
 	}
 }
 

@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/jub0bs/cors"
+	"github.com/jub0bs/errutil"
 	"github.com/jub0bs/namecheck"
 	"github.com/jub0bs/namecheck/github"
 )
@@ -101,7 +102,10 @@ func handleCheck(w http.ResponseWriter, r *http.Request) {
 		case <-ctx.Done():
 			w.WriteHeader(http.StatusInternalServerError)
 			return
-		case <-errorCh:
+		case err := <-errorCh:
+			if errua, ok := errutil.Find[*namecheck.UnknownAvailabilityError](err); ok {
+				fmt.Println(errua.Platform, errua.Username)
+			}
 			cancel()
 			fmt.Println(ctx.Err())
 			w.WriteHeader(http.StatusInternalServerError)
