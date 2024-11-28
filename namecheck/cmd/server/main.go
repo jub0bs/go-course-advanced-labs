@@ -147,7 +147,7 @@ func check(
 	}
 	avail, err := checker.IsAvailable(ctx, username)
 	if err != nil {
-		send(ctx, resultCh, res)
+		send(ctx, errorCh, err)
 		return
 	}
 	res.Available = avail
