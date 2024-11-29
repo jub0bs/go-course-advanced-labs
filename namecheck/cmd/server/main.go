@@ -84,42 +84,33 @@ func handleCheck(w http.ResponseWriter, r *http.Request) {
 	for range n {
 		checkers = append(checkers, g)
 	}
-	resultCh := make(chan Result)
-	errorCh := make(chan error)
+	results := make([]Result, len(checkers))
 	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
 	defer cancel()
+	errCh := make(chan error)
 	var wg sync.WaitGroup
-	go func() {
-		for _, checker := range checkers {
-			sema <- struct{}{}
-			wg.Add(1)
-			go check(ctx, checker, username, &wg, resultCh, errorCh)
-		}
-		wg.Wait()
-		close(resultCh)
-	}()
-	var results []Result
-	var finished bool
-	for !finished {
-		select {
-		case <-ctx.Done():
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		case err := <-errorCh:
-			if errua, ok := errutil.Find[*namecheck.UnknownAvailabilityError](err); ok {
-				fmt.Println(errua.Platform, errua.Username)
+	for i, checker := range checkers {
+		sema <- struct{}{}
+		wg.Add(1)
+		go func() {
+			res, err := check(ctx, checker, username, &wg)
+			if err != nil {
+				cancel()
+				errCh <- err
+				return
 			}
-			cancel()
-			fmt.Println(ctx.Err())
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		case res, ok := <-resultCh:
-			if !ok {
-				finished = true
-				continue
-			}
-			results = append(results, res)
+			results[i] = *res
+		}()
+	}
+	wg.Wait()
+	select {
+	case err := <-errCh:
+		if errua, ok := errutil.Find[*namecheck.UnknownAvailabilityError](err); ok {
+			fmt.Println(errua.Platform, errua.Username)
 		}
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	default:
 	}
 	data := struct {
 		Username string   `json:"username"`
@@ -140,9 +131,7 @@ func check(
 	checker namecheck.Checker,
 	username string,
 	wg *sync.WaitGroup,
-	resultCh chan<- Result,
-	errorCh chan<- error,
-) {
+) (*Result, error) {
 	defer wg.Done()
 	defer func() { <-sema }()
 	res := Result{
@@ -150,23 +139,12 @@ func check(
 		Valid:    checker.IsValid(username),
 	}
 	if !res.Valid {
-		send(ctx, resultCh, res)
-		return
+		return &res, nil
 	}
 	avail, err := checker.IsAvailable(ctx, username)
 	if err != nil {
-		send(ctx, errorCh, err)
-		return
+		return nil, err
 	}
 	res.Available = avail
-	send(ctx, resultCh, res)
-}
-
-func send[T any](ctx context.Context, ch chan<- T, v T) {
-	select {
-	case <-ctx.Done():
-		return
-	case ch <- v:
-		return
-	}
+	return &res, nil
 }
