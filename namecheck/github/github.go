@@ -1,3 +1,4 @@
+// Package github allows you to do ...
 package github
 
 import (
@@ -12,6 +13,7 @@ import (
 	"github.com/jub0bs/namecheck"
 )
 
+// A GitHub is an abstraction for checking validity ....
 type GitHub struct {
 	Client namecheck.Client
 }
@@ -26,10 +28,12 @@ const (
 
 var legalPattern = regexp.MustCompile("^[-0-9A-Za-z]*$")
 
+// String returns a textual representation...
 func (*GitHub) String() string {
 	return "GitHub"
 }
 
+// IsValid...
 func (*GitHub) IsValid(username string) bool {
 	return isLongEnough(username) &&
 		isShortEnough(username) &&
@@ -41,8 +45,10 @@ func (*GitHub) IsValid(username string) bool {
 
 var _ namecheck.Checker = (*GitHub)(nil)
 
+// IsAvailable reports the availability of username.
+// If the availability cannot be checked, it returns a non-nil error.
 func (gh *GitHub) IsAvailable(ctx context.Context, username string) (bool, error) {
-	endpoint := fmt.Sprintf("https://gisdflnsdgf,nmthub.com/%s", url.PathEscape(username))
+	endpoint := fmt.Sprintf("https://github.com/%s", url.PathEscape(username))
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
 	errua := namecheck.UnknownAvailabilityError{
 		Username: username,
