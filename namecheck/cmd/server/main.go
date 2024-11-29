@@ -28,6 +28,8 @@ var (
 	mu    sync.Mutex
 )
 
+var sema = make(chan struct{}, 8)
+
 func main() {
 	// create a custom HTTP request multiplexer and register your handler to pattern GET /hello
 	mux := http.NewServeMux()
@@ -87,11 +89,12 @@ func handleCheck(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
 	defer cancel()
 	var wg sync.WaitGroup
-	for _, checker := range checkers {
-		wg.Add(1)
-		go check(ctx, checker, username, &wg, resultCh, errorCh)
-	}
 	go func() {
+		for _, checker := range checkers {
+			sema <- struct{}{}
+			wg.Add(1)
+			go check(ctx, checker, username, &wg, resultCh, errorCh)
+		}
 		wg.Wait()
 		close(resultCh)
 	}()
@@ -141,6 +144,7 @@ func check(
 	errorCh chan<- error,
 ) {
 	defer wg.Done()
+	defer func() { <-sema }()
 	res := Result{
 		Platform: checker.String(),
 		Valid:    checker.IsValid(username),
